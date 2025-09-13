@@ -1,0 +1,42 @@
+trigger:
+- main  # or your default branch
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  storageAccountName: 'storingdevopsartifacts'
+  containerName: 'storingjavaartifacts'
+  uploadFileName: 'sample.txt'
+  localFilePath: '$(Build.ArtifactStagingDirectory)/sample.txt'
+
+stages:
+- stage: UploadFile
+  jobs:
+  - job: UploadJob
+    displayName: 'Create and Upload File'
+    steps:
+
+    - task: Bash@3
+      displayName: 'Create sample text file'
+      inputs:
+        targetType: 'inline'
+        script: |
+          echo "Hello from Azure DevOps!" > $(localFilePath)
+          cat $(localFilePath)
+
+    - task: AzureCLI@2
+      displayName: 'Upload file to Azure Blob Storage'
+      inputs:
+        azureSubscription: 'Azure-DevOps-StorageAccount-1'  # Replace with your actual service connection name
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Uploading file to blob storage..."
+
+          az storage blob upload \
+            --account-name $(storageAccountName) \
+            --container-name $(containerName) \
+            --name $(uploadFileName) \
+            --file "$(localFilePath)" \
+            --auth-mode login
